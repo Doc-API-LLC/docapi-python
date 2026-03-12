@@ -211,6 +211,83 @@ class DocAPI:
         )
         return raw
 
+    def invoice(
+        self,
+        from_: Dict[str, Any],
+        to: Dict[str, Any],
+        line_items: list,
+        *,
+        invoice_number: Optional[str] = None,
+        date: Optional[str] = None,
+        due_date: Optional[str] = None,
+        currency_symbol: Optional[str] = None,
+        tax_percent: Optional[float] = None,
+        notes: Optional[str] = None,
+        logo_url: Optional[str] = None,
+    ) -> bytes:
+        """Generate a PDF invoice.
+
+        Args:
+            from_: Sender details — ``{"name": str, "email": str (opt),
+                "address": str (opt), "phone": str (opt)}``.
+            to: Recipient details — ``{"name": str, "email": str (opt),
+                "address": str (opt)}``.
+            line_items: List of line items — each a dict with
+                ``{"description": str, "quantity": float, "unit_price": float}``.
+            invoice_number: Optional invoice number string.
+            date: Optional invoice date string (e.g. ``"2026-03-12"``).
+            due_date: Optional due date string.
+            currency_symbol: Currency symbol. Default ``"$"``.
+            tax_percent: Tax percentage 0–100.
+            notes: Optional footer notes.
+            logo_url: Optional URL to a logo image.
+
+        Returns:
+            PDF file as :class:`bytes`.
+
+        Raises:
+            DocAPIError: On API errors (401, 402, 429, 500).
+
+        Example::
+
+            pdf = client.invoice(
+                from_={"name": "Acme Corp", "email": "billing@acme.com"},
+                to={"name": "Jane Doe", "address": "123 Main St"},
+                line_items=[{"description": "Consulting", "quantity": 2, "unit_price": 150.0}],
+                invoice_number="INV-001",
+                due_date="2026-04-12",
+            )
+            with open("invoice.pdf", "wb") as f:
+                f.write(pdf)
+        """
+        body: Dict[str, Any] = {
+            "from": from_,
+            "to": to,
+            "line_items": line_items,
+        }
+        if invoice_number is not None:
+            body["invoice_number"] = invoice_number
+        if date is not None:
+            body["date"] = date
+        if due_date is not None:
+            body["due_date"] = due_date
+        if currency_symbol is not None:
+            body["currency_symbol"] = currency_symbol
+        if tax_percent is not None:
+            body["tax_percent"] = tax_percent
+        if notes is not None:
+            body["notes"] = notes
+        if logo_url is not None:
+            body["logo_url"] = logo_url
+
+        raw, _ = self._request(
+            "POST",
+            f"{_BASE_URL}/v1/invoice",
+            body,
+            track_credits=True,
+        )
+        return raw
+
     def credits(self) -> Dict[str, Any]:
         """Check remaining credits and USDC top-up address.
 
